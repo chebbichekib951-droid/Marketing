@@ -1,0 +1,544 @@
+{
+  "name": "Agent IA - Contenu Compléments Alimentaires",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "Créer du Contenu Marketing",
+        "formDescription": "Agent IA pour votre marque de compléments alimentaires",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Type de contenu",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  { "option": "Post Instagram" },
+                  { "option": "Post TikTok" },
+                  { "option": "Article de Blog" },
+                  { "option": "Image Produit" }
+                ]
+              },
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Nom du produit ou sujet",
+              "fieldType": "text",
+              "placeholder": "Ex: Whey Vanille, Vitamine D3, Récupération musculaire...",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Ton de communication",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  { "option": "Motivant et énergique" },
+                  { "option": "Scientifique et crédible" },
+                  { "option": "Fun et accessible" },
+                  { "option": "Premium et luxe" }
+                ]
+              },
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Informations supplémentaires",
+              "fieldType": "textarea",
+              "placeholder": "Promotions en cours, bénéfices clés, événements...",
+              "requiredField": false
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "form-trigger-node-001",
+      "name": "Formulaire de Création",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [240, 400],
+      "webhookId": "content-agent-webhook"
+    },
+    {
+      "parameters": {
+        "mode": "rules",
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": { "caseSensitive": false, "typeValidation": "strict" },
+                "conditions": [
+                  {
+                    "id": "cond-ig",
+                    "leftValue": "={{ $json['Type de contenu'] }}",
+                    "rightValue": "Post Instagram",
+                    "operator": { "type": "string", "operation": "equals" }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Instagram"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": false, "typeValidation": "strict" },
+                "conditions": [
+                  {
+                    "id": "cond-tt",
+                    "leftValue": "={{ $json['Type de contenu'] }}",
+                    "rightValue": "Post TikTok",
+                    "operator": { "type": "string", "operation": "equals" }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "TikTok"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": false, "typeValidation": "strict" },
+                "conditions": [
+                  {
+                    "id": "cond-blog",
+                    "leftValue": "={{ $json['Type de contenu'] }}",
+                    "rightValue": "Article de Blog",
+                    "operator": { "type": "string", "operation": "equals" }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Blog"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": false, "typeValidation": "strict" },
+                "conditions": [
+                  {
+                    "id": "cond-img",
+                    "leftValue": "={{ $json['Type de contenu'] }}",
+                    "rightValue": "Image Produit",
+                    "operator": { "type": "string", "operation": "equals" }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Image"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "switch-content-type-002",
+      "name": "Type de Contenu",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [480, 400]
+    },
+
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-api-key", "value": "VOTRE_CLE_API_CLAUDE" },
+            { "name": "anthropic-version", "value": "2023-06-01" },
+            { "name": "content-type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"claude-opus-4-6\",\n  \"max_tokens\": 1024,\n  \"messages\": [{\n    \"role\": \"user\",\n    \"content\": \"Tu es un expert en marketing digital pour les compléments alimentaires. Crée un post Instagram engageant pour le produit/sujet suivant : {{ $json['Nom du produit ou sujet'] }}. Ton souhaité : {{ $json['Ton de communication'] }}. Infos supplémentaires : {{ $json['Informations supplémentaires'] }}. Réponds UNIQUEMENT en JSON valide avec cette structure exacte : {\\\"caption\\\": \\\"Texte du post max 2200 caractères avec emojis\\\", \\\"hashtags\\\": [\\\"#hashtag1\\\", \\\"#hashtag2\\\"], \\\"image_prompt\\\": \\\"Detailed English description for DALL-E: professional product photography of supplement, bright studio lighting, minimalist white background, premium branding\\\"}\"\n  }]\n}"
+      },
+      "id": "claude-instagram-caption-003",
+      "name": "Claude - Caption Instagram",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [720, 160]
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "const responseText = $json.content[0].text;\nconst parsed = JSON.parse(responseText);\nconst formData = $('Formulaire de Création').first().json;\nreturn [{\n  json: {\n    caption: parsed.caption,\n    hashtags: parsed.hashtags.join(' '),\n    image_prompt: parsed.image_prompt,\n    full_caption: parsed.caption + '\\n\\n' + parsed.hashtags.join(' '),\n    produit: formData['Nom du produit ou sujet']\n  }\n}];"
+      },
+      "id": "parse-instagram-004",
+      "name": "Parser - Caption IG",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [940, 160]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/images/generations",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "Bearer VOTRE_CLE_API_OPENAI" },
+            { "name": "content-type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"dall-e-3\",\n  \"prompt\": \"{{ $json.image_prompt }}\",\n  \"n\": 1,\n  \"size\": \"1024x1024\",\n  \"quality\": \"standard\",\n  \"response_format\": \"url\"\n}"
+      },
+      "id": "dalle-instagram-image-005",
+      "name": "DALL-E - Image Instagram",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1160, 160]
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "const imageUrl = $json.data[0].url;\nconst prevData = $('Parser - Caption IG').first().json;\nreturn [{\n  json: {\n    image_url: imageUrl,\n    caption: prevData.caption,\n    hashtags: prevData.hashtags,\n    full_caption: prevData.full_caption\n  }\n}];"
+      },
+      "id": "parse-dalle-ig-006",
+      "name": "Parser - Image URL IG",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1380, 160]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v18.0/VOTRE_IG_USER_ID/media",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "content-type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"image_url\": \"{{ $json.image_url }}\",\n  \"caption\": \"{{ $json.full_caption }}\",\n  \"access_token\": \"VOTRE_META_ACCESS_TOKEN\"\n}"
+      },
+      "id": "ig-create-container-007",
+      "name": "Instagram - Créer Container",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1600, 160]
+    },
+    {
+      "parameters": {
+        "unit": "seconds",
+        "amount": 10
+      },
+      "id": "wait-ig-processing-008",
+      "name": "Attente Processing",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [1820, 160],
+      "webhookId": "wait-ig-webhook"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v18.0/VOTRE_IG_USER_ID/media_publish",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "content-type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"creation_id\": \"{{ $('Instagram - Créer Container').item.json.id }}\",\n  \"access_token\": \"VOTRE_META_ACCESS_TOKEN\"\n}"
+      },
+      "id": "ig-publish-009",
+      "name": "Instagram - Publier",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2040, 160]
+    },
+
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-api-key", "value": "VOTRE_CLE_API_CLAUDE" },
+            { "name": "anthropic-version", "value": "2023-06-01" },
+            { "name": "content-type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"claude-opus-4-6\",\n  \"max_tokens\": 1500,\n  \"messages\": [{\n    \"role\": \"user\",\n    \"content\": \"Tu es un expert TikTok spécialisé en compléments alimentaires. Crée un script vidéo TikTok viral de 30-60 secondes pour : {{ $json['Nom du produit ou sujet'] }}. Ton : {{ $json['Ton de communication'] }}. Infos : {{ $json['Informations supplémentaires'] }}. Réponds UNIQUEMENT en JSON valide : {\\\"hook\\\": \\\"Accroche percutante des 3 premières secondes\\\", \\\"script\\\": \\\"Script complet avec indications [PAUSE] [ZOOM IN] [TEXT ON SCREEN: xxx]\\\", \\\"cta\\\": \\\"Appel à l'action final\\\", \\\"hashtags\\\": [\\\"#hashtag1\\\", \\\"#hashtag2\\\"], \\\"thumbnail_prompt\\\": \\\"Detailed English description for DALL-E thumbnail: energetic person with supplement product, bold colors, action shot\\\"}\"\n  }]\n}"
+      },
+      "id": "claude-tiktok-script-010",
+      "name": "Claude - Script TikTok",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [720, 360]
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "const responseText = $json.content[0].text;\nconst parsed = JSON.parse(responseText);\nreturn [{\n  json: {\n    hook: parsed.hook,\n    script: parsed.script,\n    cta: parsed.cta,\n    hashtags: parsed.hashtags.join(' '),\n    thumbnail_prompt: parsed.thumbnail_prompt,\n    full_script: `HOOK: ${parsed.hook}\\n\\n${parsed.script}\\n\\nCTA: ${parsed.cta}\\n\\n${parsed.hashtags.join(' ')}`\n  }\n}];"
+      },
+      "id": "parse-tiktok-011",
+      "name": "Parser - Script TikTok",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [940, 360]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/images/generations",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "Bearer VOTRE_CLE_API_OPENAI" },
+            { "name": "content-type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"dall-e-3\",\n  \"prompt\": \"{{ $json.thumbnail_prompt }}\",\n  \"n\": 1,\n  \"size\": \"1024x1792\",\n  \"quality\": \"standard\",\n  \"response_format\": \"url\"\n}"
+      },
+      "id": "dalle-tiktok-thumb-012",
+      "name": "DALL-E - Miniature TikTok",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1160, 360]
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "const thumbnailUrl = $json.data[0].url;\nconst scriptData = $('Parser - Script TikTok').first().json;\nreturn [{\n  json: {\n    thumbnail_url: thumbnailUrl,\n    hook: scriptData.hook,\n    script: scriptData.full_script,\n    hashtags: scriptData.hashtags,\n    message: `✅ Script TikTok prêt !\\n\\n📌 HOOK: ${scriptData.hook}\\n\\n📝 SCRIPT COMPLET: ${scriptData.script}\\n\\n🖼️ Miniature générée: ${thumbnailUrl}\\n\\nCopiez le script et filmez votre vidéo !`\n  }\n}];"
+      },
+      "id": "result-tiktok-013",
+      "name": "Résultat TikTok",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1380, 360]
+    },
+
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-api-key", "value": "VOTRE_CLE_API_CLAUDE" },
+            { "name": "anthropic-version", "value": "2023-06-01" },
+            { "name": "content-type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"claude-opus-4-6\",\n  \"max_tokens\": 4096,\n  \"messages\": [{\n    \"role\": \"user\",\n    \"content\": \"Tu es un expert en content marketing et SEO pour les compléments alimentaires. Rédige un article de blog complet et optimisé SEO sur : {{ $json['Nom du produit ou sujet'] }}. Ton : {{ $json['Ton de communication'] }}. Infos : {{ $json['Informations supplémentaires'] }}. Réponds UNIQUEMENT en JSON valide : {\\\"title\\\": \\\"Titre SEO optimisé accrocheur\\\", \\\"meta_description\\\": \\\"Meta description 150-160 caractères\\\", \\\"slug\\\": \\\"url-de-l-article-en-minuscules\\\", \\\"intro\\\": \\\"Introduction engageante 2-3 paragraphes\\\", \\\"content\\\": \\\"Corps de l'article avec sous-titres ## et ### en markdown, minimum 800 mots\\\", \\\"conclusion\\\": \\\"Conclusion avec appel à l'action\\\", \\\"focus_keyword\\\": \\\"mot-clé principal\\\", \\\"tags\\\": [\\\"tag1\\\", \\\"tag2\\\", \\\"tag3\\\"]}\"\n  }]\n}"
+      },
+      "id": "claude-blog-article-014",
+      "name": "Claude - Article Blog",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [720, 560]
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "const responseText = $json.content[0].text;\nconst parsed = JSON.parse(responseText);\nconst fullContent = `${parsed.intro}\\n\\n${parsed.content}\\n\\n${parsed.conclusion}`;\nreturn [{\n  json: {\n    title: parsed.title,\n    meta_description: parsed.meta_description,\n    slug: parsed.slug,\n    content: fullContent,\n    focus_keyword: parsed.focus_keyword,\n    tags: parsed.tags,\n    status: 'draft'\n  }\n}];"
+      },
+      "id": "parse-blog-015",
+      "name": "Parser - Article Blog",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [940, 560]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://VOTRE-SITE.com/wp-json/wp/v2/posts",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "Basic VOTRE_WORDPRESS_BASE64_CREDENTIALS" },
+            { "name": "content-type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"title\": \"{{ $json.title }}\",\n  \"content\": \"{{ $json.content }}\",\n  \"slug\": \"{{ $json.slug }}\",\n  \"status\": \"draft\",\n  \"excerpt\": \"{{ $json.meta_description }}\"\n}"
+      },
+      "id": "wordpress-publish-016",
+      "name": "WordPress - Publier Article",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1160, 560]
+    },
+
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-api-key", "value": "VOTRE_CLE_API_CLAUDE" },
+            { "name": "anthropic-version", "value": "2023-06-01" },
+            { "name": "content-type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"claude-opus-4-6\",\n  \"max_tokens\": 500,\n  \"messages\": [{\n    \"role\": \"user\",\n    \"content\": \"Tu es un expert en prompt engineering pour DALL-E. Génère un prompt DALL-E 3 optimisé pour une image marketing de complément alimentaire. Produit : {{ $json['Nom du produit ou sujet'] }}. Ton : {{ $json['Ton de communication'] }}. Réponds UNIQUEMENT en JSON valide : {\\\"prompt\\\": \\\"Detailed English DALL-E 3 prompt, professional product photography, specific lighting, background, style, mood\\\", \\\"style\\\": \\\"photorealistic ou artistic ou minimalist\\\", \\\"size\\\": \\\"1024x1024 ou 1024x1792 ou 1792x1024\\\"}\"\n  }]\n}"
+      },
+      "id": "claude-image-prompt-017",
+      "name": "Claude - Prompt Image",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [720, 760]
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "const responseText = $json.content[0].text;\nconst parsed = JSON.parse(responseText);\nreturn [{\n  json: {\n    prompt: parsed.prompt,\n    style: parsed.style,\n    size: parsed.size || '1024x1024'\n  }\n}];"
+      },
+      "id": "parse-image-prompt-018",
+      "name": "Parser - Prompt Image",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [940, 760]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/images/generations",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "Bearer VOTRE_CLE_API_OPENAI" },
+            { "name": "content-type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"dall-e-3\",\n  \"prompt\": \"{{ $json.prompt }}\",\n  \"n\": 1,\n  \"size\": \"{{ $json.size }}\",\n  \"quality\": \"hd\",\n  \"response_format\": \"url\"\n}"
+      },
+      "id": "dalle-standalone-019",
+      "name": "DALL-E - Image Produit",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1160, 760]
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "const imageUrl = $json.data[0].url;\nconst revisedPrompt = $json.data[0].revised_prompt;\nreturn [{\n  json: {\n    image_url: imageUrl,\n    revised_prompt: revisedPrompt,\n    message: `✅ Image générée avec succès !\\n\\n🖼️ URL de l'image: ${imageUrl}\\n\\n📝 Prompt utilisé: ${revisedPrompt}\\n\\n⚠️ L'URL expire dans 1 heure - téléchargez l'image maintenant !`\n  }\n}];"
+      },
+      "id": "result-image-020",
+      "name": "Résultat Image",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1380, 760]
+    }
+  ],
+  "connections": {
+    "Formulaire de Création": {
+      "main": [
+        [{ "node": "Type de Contenu", "type": "main", "index": 0 }]
+      ]
+    },
+    "Type de Contenu": {
+      "main": [
+        [{ "node": "Claude - Caption Instagram", "type": "main", "index": 0 }],
+        [{ "node": "Claude - Script TikTok", "type": "main", "index": 0 }],
+        [{ "node": "Claude - Article Blog", "type": "main", "index": 0 }],
+        [{ "node": "Claude - Prompt Image", "type": "main", "index": 0 }]
+      ]
+    },
+    "Claude - Caption Instagram": {
+      "main": [
+        [{ "node": "Parser - Caption IG", "type": "main", "index": 0 }]
+      ]
+    },
+    "Parser - Caption IG": {
+      "main": [
+        [{ "node": "DALL-E - Image Instagram", "type": "main", "index": 0 }]
+      ]
+    },
+    "DALL-E - Image Instagram": {
+      "main": [
+        [{ "node": "Parser - Image URL IG", "type": "main", "index": 0 }]
+      ]
+    },
+    "Parser - Image URL IG": {
+      "main": [
+        [{ "node": "Instagram - Créer Container", "type": "main", "index": 0 }]
+      ]
+    },
+    "Instagram - Créer Container": {
+      "main": [
+        [{ "node": "Attente Processing", "type": "main", "index": 0 }]
+      ]
+    },
+    "Attente Processing": {
+      "main": [
+        [{ "node": "Instagram - Publier", "type": "main", "index": 0 }]
+      ]
+    },
+    "Claude - Script TikTok": {
+      "main": [
+        [{ "node": "Parser - Script TikTok", "type": "main", "index": 0 }]
+      ]
+    },
+    "Parser - Script TikTok": {
+      "main": [
+        [{ "node": "DALL-E - Miniature TikTok", "type": "main", "index": 0 }]
+      ]
+    },
+    "DALL-E - Miniature TikTok": {
+      "main": [
+        [{ "node": "Résultat TikTok", "type": "main", "index": 0 }]
+      ]
+    },
+    "Claude - Article Blog": {
+      "main": [
+        [{ "node": "Parser - Article Blog", "type": "main", "index": 0 }]
+      ]
+    },
+    "Parser - Article Blog": {
+      "main": [
+        [{ "node": "WordPress - Publier Article", "type": "main", "index": 0 }]
+      ]
+    },
+    "Claude - Prompt Image": {
+      "main": [
+        [{ "node": "Parser - Prompt Image", "type": "main", "index": 0 }]
+      ]
+    },
+    "Parser - Prompt Image": {
+      "main": [
+        [{ "node": "DALL-E - Image Produit", "type": "main", "index": 0 }]
+      ]
+    },
+    "DALL-E - Image Produit": {
+      "main": [
+        [{ "node": "Résultat Image", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "marketing-agent-v1",
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "instanceId": "complement-alimentaire-agent"
+  },
+  "id": "marketing-content-agent-001",
+  "tags": [
+    { "createdAt": "2026-03-10", "updatedAt": "2026-03-10", "id": "tag-marketing", "name": "Marketing" },
+    { "createdAt": "2026-03-10", "updatedAt": "2026-03-10", "id": "tag-ia", "name": "IA" },
+    { "createdAt": "2026-03-10", "updatedAt": "2026-03-10", "id": "tag-complement", "name": "Complement Alimentaire" }
+  ]
+}
