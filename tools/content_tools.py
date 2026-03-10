@@ -218,6 +218,43 @@ TOOLS = [
         },
     },
     {
+        "name": "generate_nano_banana",
+        "description": (
+            "Génère du contenu pour la plateforme Nano Banana : email marketing, SMS ou notification push. "
+            "Respecte les contraintes strictes de caractères pour chaque format. "
+            "Produit les variantes A/B pour les objets email et les SMS de relance."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "type": "string",
+                    "enum": ["email", "sms", "push"],
+                    "description": "Le type de message Nano Banana à générer.",
+                },
+                "topic": {
+                    "type": "string",
+                    "description": "Le sujet ou message principal à communiquer.",
+                },
+                "segment": {
+                    "type": "string",
+                    "enum": ["nouveaux", "actifs", "inactifs", "acheteurs", "tous"],
+                    "description": "Le segment d'audience cible.",
+                    "default": "tous",
+                },
+                "brand_name": {
+                    "type": "string",
+                    "description": "Le nom de la marque ou de l'expéditeur.",
+                },
+                "cta_url": {
+                    "type": "string",
+                    "description": "L'URL ou l'action de destination du CTA.",
+                },
+            },
+            "required": ["type", "topic"],
+        },
+    },
+    {
         "name": "generate_full_campaign",
         "description": (
             "Génère une campagne de contenu complète autour d'un sujet : "
@@ -241,13 +278,27 @@ TOOLS = [
                 },
                 "platforms": {
                     "type": "array",
-                    "items": {"type": "string"},
-                    "description": "Plateformes cibles pour la campagne.",
+                    "items": {
+                        "type": "string",
+                        "enum": ["tiktok", "instagram", "facebook", "nano_banana", "canva"],
+                    },
+                    "description": "Plateformes cibles (tiktok, instagram, facebook, nano_banana, canva). Si vide ou 'all' : toutes les plateformes.",
                 },
                 "campaign_goal": {
                     "type": "string",
                     "enum": ["notoriété", "engagement", "ventes", "abonnés", "trafic_site"],
                     "description": "L'objectif principal de la campagne.",
+                },
+                "flags": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Flags actifs : '+ad' pour Meta Ads, '+story' pour Instagram Stories.",
+                },
+                "nano_banana_type": {
+                    "type": "string",
+                    "enum": ["email", "sms", "push"],
+                    "description": "Format Nano Banana si la plateforme est incluse (défaut: email).",
+                    "default": "email",
                 },
             },
             "required": ["campaign_topic", "platforms", "campaign_goal"],
@@ -269,6 +320,7 @@ def execute_tool(name: str, tool_input: dict[str, Any]) -> str:
         "generate_video_script": _handle_video_script,
         "create_content_calendar": _handle_content_calendar,
         "generate_canva_brief": _handle_canva_brief,
+        "generate_nano_banana": _handle_nano_banana,
         "generate_full_campaign": _handle_full_campaign,
     }
     handler = handlers.get(name)
@@ -465,32 +517,142 @@ def _handle_canva_brief(args: dict) -> str:
     }, ensure_ascii=False)
 
 
+def _handle_nano_banana(args: dict) -> str:
+    nb_type = args["type"]
+    topic = args["topic"]
+    segment = args.get("segment", "tous")
+    brand_name = args.get("brand_name", "Ma Marque")
+    cta_url = args.get("cta_url", "[URL]")
+
+    type_specs = {
+        "email": {
+            "constraints": "Objet ≤ 60 car. | Objet alt. ≤ 60 car. | Preheader ≤ 90 car. | Corps : intro 2-3 phrases + valeur 150-300 mots + CTA bouton",
+            "instruction": (
+                f"Génère un email complet pour Nano Banana. Marque : '{brand_name}'. Sujet : '{topic}'. Segment : {segment}.\n"
+                "Structure OBLIGATOIRE :\n"
+                "Objet principal  : [≤ 60 caractères]\n"
+                "Objet alternatif : [≤ 60 caractères — angle différent pour A/B test]\n"
+                "Preheader        : [≤ 90 caractères]\n"
+                "Corps email      : Intro (2-3 phrases) + Valeur (150-300 mots) + Bouton CTA → " + cta_url + "\n"
+                f"Segment cible    : {segment}\n"
+                "Heure d'envoi    : [jour + heure optimale]"
+            ),
+        },
+        "sms": {
+            "constraints": "SMS principal EXACTEMENT 160 car. | SMS relance EXACTEMENT 160 car.",
+            "instruction": (
+                f"Génère 2 SMS pour Nano Banana. Marque : '{brand_name}'. Sujet : '{topic}'. Segment : {segment}.\n"
+                "CONTRAINTE ABSOLUE : chaque SMS doit faire EXACTEMENT 160 caractères (pas plus, pas moins).\n"
+                "SMS principal    : [bénéfice immédiat + lien court — EXACTEMENT 160 caractères]\n"
+                "SMS relance      : [angle différent — EXACTEMENT 160 caractères]\n"
+                "Fenêtre d'envoi  : [plage horaire recommandée]\n"
+                "Compte les caractères et ajuste jusqu'à atteindre exactement 160."
+            ),
+        },
+        "push": {
+            "constraints": "Titre ≤ 50 car. | Corps ≤ 100 car.",
+            "instruction": (
+                f"Génère une notification push pour Nano Banana. Marque : '{brand_name}'. Sujet : '{topic}'.\n"
+                "Structure OBLIGATOIRE :\n"
+                "Titre  : [≤ 50 caractères]\n"
+                "Corps  : [≤ 100 caractères]\n"
+                f"CTA    : {cta_url}\n"
+                "Timing : [heure + fréquence max par semaine]"
+            ),
+        },
+    }
+
+    spec = type_specs.get(nb_type, type_specs["email"])
+    return json.dumps({
+        "tool": "generate_nano_banana",
+        "type": nb_type,
+        "topic": topic,
+        "segment": segment,
+        "brand_name": brand_name,
+        "constraints": spec["constraints"],
+        "instruction": spec["instruction"],
+    }, ensure_ascii=False)
+
+
 def _handle_full_campaign(args: dict) -> str:
     campaign_topic = args["campaign_topic"]
     brand_name = args.get("brand_name", "Ma Marque")
     target_audience = args.get("target_audience", "audience générale")
-    platforms = args["platforms"]
+    platforms = args.get("platforms", ["tiktok", "instagram", "facebook", "nano_banana", "canva"])
     campaign_goal = args["campaign_goal"]
+    flags = args.get("flags", [])
+    nano_banana_type = args.get("nano_banana_type", "email")
+
+    # Construire les instructions par plateforme
+    platform_instructions = []
+    all_platforms = ["tiktok", "instagram", "facebook", "nano_banana", "canva"]
+    active_platforms = platforms if platforms else all_platforms
+
+    for p in active_platforms:
+        if p == "tiktok":
+            platform_instructions.append(
+                "🎵 TIKTOK : 3 hooks (question/affirmation/résultat), script beat par beat "
+                "(VOIX OFF + TEXT OVERLAY + ACTION CAM + TRANSITION), son suggéré, légende 150-300 car., "
+                "hashtags (2 larges + 6 niche + 2 marque), heure de publication, série de 3 vidéos de suivi. "
+                "JAMAIS de intro classique. Hook en 2 secondes."
+            )
+        elif p == "instagram":
+            fmt = "CARROUSEL"
+            if "+story" in flags:
+                fmt += " + STORY (5 slides avec stickers interactifs)"
+            platform_instructions.append(
+                f"📸 INSTAGRAM ({fmt}) : hook visuel, slides structurées (accroche/contenu/CTA), "
+                "caption hook ≤ 125 car. + corps 300-800 car., 20-30 hashtags classés par taille, alt text SEO."
+            )
+        elif p == "facebook":
+            fb_instr = (
+                "📘 FACEBOOK : post organique (accroche ≤ 100 car. + 4 paragraphes structure PAS, "
+                "CTA, 3-5 hashtags, 150-400 mots)"
+            )
+            if "+ad" in flags:
+                fb_instr += (
+                    " + META ADS (primary text ≤ 125 car., 3 headlines ≤ 40 car., "
+                    "description ≤ 30 car., bouton CTA, ciblage suggéré)"
+                )
+            platform_instructions.append(fb_instr)
+        elif p == "nano_banana":
+            platform_instructions.append(
+                f"🍌 NANO BANANA ({nano_banana_type.upper()}) : "
+                + {
+                    "email": "objet principal + alternatif (≤ 60 car. chacun), preheader ≤ 90 car., corps complet avec CTA bouton, segment cible, heure d'envoi",
+                    "sms": "SMS principal EXACTEMENT 160 car. + SMS relance EXACTEMENT 160 car. + fenêtre d'envoi",
+                    "push": "titre ≤ 50 car. + corps ≤ 100 car. + CTA + timing",
+                }.get(nano_banana_type, "email complet")
+            )
+        elif p == "canva":
+            platform_instructions.append(
+                "🎨 CANVA BRIEF VISUEL : specs (dimensions + export), palette 4 couleurs #HEX, "
+                "typographie (polices Canva exactes + tailles), 6 zones détaillées "
+                "(fond + visuel + titre + sous-titre + marque + CTA), checklist export, 2 variantes."
+            )
+
+    flags_note = f"\nFlags actifs : {', '.join(flags)}" if flags else ""
 
     return json.dumps({
         "tool": "generate_full_campaign",
         "campaign_topic": campaign_topic,
         "brand_name": brand_name,
         "target_audience": target_audience,
-        "platforms": platforms,
+        "platforms": active_platforms,
         "campaign_goal": campaign_goal,
+        "flags": flags,
+        "nano_banana_type": nano_banana_type,
         "instruction": (
-            f"Crée une campagne de contenu COMPLÈTE pour '{brand_name}' autour de '{campaign_topic}'. "
-            f"Audience : {target_audience}. Objectif : {campaign_goal}. "
-            f"Plateformes : {', '.join(platforms)}. \n\n"
-            "Génère pour CHAQUE plateforme :\n"
-            "✍️ Texte adapté avec émojis\n"
-            "#️⃣ 10-15 hashtags optimisés\n"
-            "🎨 Brief visuel + prompt IA\n"
-            "🎬 Script vidéo (si applicable : TikTok/Reels)\n\n"
-            "Puis génère :\n"
-            "📅 Calendrier de publication sur 7 jours\n"
-            "📊 KPIs à suivre pour mesurer le succès\n"
-            "💡 3 variations A/B à tester"
+            f"Crée une campagne de contenu COMPLÈTE en suivant l'architecture 4 couches.\n\n"
+            f"Marque : '{brand_name}' | Sujet : '{campaign_topic}'\n"
+            f"Audience : {target_audience} | Objectif : {campaign_goal}{flags_note}\n\n"
+            "ÉTAPE 1 — Affiche le Content Brief (sujet central, angle narratif, valeur principale, plateformes, flags).\n\n"
+            "ÉTAPE 2 — Génère chaque module dans l'ordre avec les schémas stricts :\n"
+            + "\n".join(f"  {i+1}. {instr}" for i, instr in enumerate(platform_instructions))
+            + "\n\nÉTAPE 3 — Termine avec :\n"
+            "📅 Plan de publication (tableau Plateforme | Format | Jour | Heure | Priorité)\n"
+            "🔮 3 contenus complémentaires suggérés\n"
+            "❓ Précisions manquantes (si applicable)\n\n"
+            "RÈGLE ABSOLUE : aucun texte identique entre plateformes. Tous les champs doivent être remplis."
         ),
     }, ensure_ascii=False)
