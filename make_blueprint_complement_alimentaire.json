@@ -283,7 +283,7 @@
               "version": 5,
               "parameters": {},
               "mapper": {
-                "to": "VOTRE_EMAIL@email.com",
+                "to": "chebbi.chekib951@gmail.com",
                 "subject": "Script TikTok prêt - {{1.produit}}",
                 "html": "<h2>✅ Script TikTok prêt !</h2><h3>🎣 HOOK :</h3><p>{{10.hook}}</p><h3>📝 SCRIPT COMPLET :</h3><pre>{{10.script}}</pre><h3>📣 APPEL À L'ACTION :</h3><p>{{10.cta}}</p><h3>#️⃣ HASHTAGS :</h3><p>{{join(10.hashtags, ' ')}}</p><h3>🖼️ MINIATURE :</h3><p><img src='{{11.data.data[].url}}' width='400'/></p><p><a href='{{11.data.data[].url}}'>Télécharger la miniature</a></p>"
               },
@@ -465,7 +465,7 @@
               "version": 5,
               "parameters": {},
               "mapper": {
-                "to": "VOTRE_EMAIL@email.com",
+                "to": "chebbi.chekib951@gmail.com",
                 "subject": "Image produit générée - {{1.produit}}",
                 "html": "<h2>✅ Image générée avec succès !</h2><p><img src='{{18.data.data[].url}}' width='500'/></p><p><strong><a href='{{18.data.data[].url}}'>⬇️ Télécharger l'image (expire dans 1h)</a></strong></p><p><small>Prompt utilisé : {{18.data.data[].revised_prompt}}</small></p>"
               },
