@@ -6,7 +6,7 @@
 |---|---|
 | Post Instagram | Génère caption + hashtags + image → Publie automatiquement |
 | Post TikTok | Génère script vidéo + miniature → Envoie par email |
-| Article de Blog | Génère article SEO complet → Publie en brouillon WordPress |
+| Article de Blog | Génère article SEO complet → Publie en brouillon Shopify |
 | Image Produit | Génère une image HD professionnelle → Envoie par email |
 
 ---
@@ -31,12 +31,15 @@
 - Générer un token d'accès longue durée (90 jours)
 - Récupérer ton **Instagram User ID** (numérique)
 
-### 4. WordPress (pour les articles de blog)
-- Dans WordPress : Utilisateurs → Ton profil → "Mots de passe d'application"
-- Créer un mot de passe d'application
-- Encoder en Base64 : `utilisateur:motdepasse` → utiliser base64encode.org
-- Remplacer `VOTRE_WORDPRESS_BASE64_CREDENTIALS`
-- Remplacer `VOTRE-SITE.com` par ton vrai domaine
+### 4. Shopify (pour les articles de blog)
+- Dans Shopify Admin : **Paramètres → Apps et canaux de vente → Développer des apps**
+- Cliquer sur **"Créer une app"** → Donner un nom (ex: "Agent IA Blog")
+- Dans l'app : **"Configuration de l'API Admin"** → Cocher `write_content` et `read_content`
+- Installer l'app → Copier le **Token d'accès Admin API** (commence par `shpat_...`)
+- Remplacer `VOTRE_SHOPIFY_ACCESS_TOKEN`
+- Remplacer `VOTRE-STORE` par le sous-domaine de ta boutique (ex: `ma-boutique`)
+- **Trouver ton Blog ID** : Dans Shopify Admin → Blog → l'ID est dans l'URL de la page
+- Remplacer `VOTRE_BLOG_ID` par cet ID numérique
 
 ---
 
@@ -58,8 +61,9 @@ Chercher et remplacer dans chaque nœud HTTP :
 | `VOTRE_CLE_API_OPENAI` | Ta clé OpenAI API |
 | `VOTRE_IG_USER_ID` | Ton Instagram User ID (numérique) |
 | `VOTRE_META_ACCESS_TOKEN` | Ton Meta Access Token |
-| `VOTRE-SITE.com` | Ton domaine WordPress |
-| `VOTRE_WORDPRESS_BASE64_CREDENTIALS` | Tes credentials WordPress encodés |
+| `VOTRE-STORE.myshopify.com` | Ton URL Shopify |
+| `VOTRE_SHOPIFY_ACCESS_TOKEN` | Ton token API Admin Shopify |
+| `VOTRE_BLOG_ID` | L'ID de ton blog Shopify |
 
 ### Étape 3 - Activer le workflow
 1. Cliquer sur **"Active"** (bouton en haut à droite)
@@ -91,8 +95,9 @@ Dans chaque module HTTP, remplacer les valeurs :
 | `VOTRE_CLE_API_OPENAI` | Ta clé OpenAI API |
 | `VOTRE_IG_USER_ID` | Ton Instagram User ID |
 | `VOTRE_META_ACCESS_TOKEN` | Ton Meta Access Token |
-| `VOTRE-SITE.com` | Ton domaine WordPress |
-| `VOTRE_WORDPRESS_BASE64_CREDENTIALS` | Tes credentials WordPress encodés |
+| `VOTRE-STORE.myshopify.com` | Ton URL Shopify |
+| `VOTRE_SHOPIFY_ACCESS_TOKEN` | Ton token API Admin Shopify |
+| `VOTRE_BLOG_ID` | L'ID de ton blog Shopify |
 | `VOTRE_EMAIL@email.com` | Ton email pour recevoir les résultats |
 
 ### Étape 4 - Déclencher le scénario
@@ -132,7 +137,7 @@ Envoyer une requête POST au webhook avec ce format :
 | TikTok : pas de publication directe de vidéo | L'agent génère le script + miniature et t'envoie tout par email |
 | Images DALL-E : URL expire en 1h | Télécharger l'image immédiatement après génération |
 | Meta Token : expire tous les 90 jours | Renouveler le token régulièrement sur developers.facebook.com |
-| WordPress : article publié en brouillon | Vérifier et valider manuellement avant publication |
+| Shopify : article publié en brouillon | Vérifier et valider manuellement avant publication dans Shopify Admin |
 
 ---
 

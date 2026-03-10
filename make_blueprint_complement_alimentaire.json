@@ -358,18 +358,18 @@
                 "useNewZLibDeCompress": true
               },
               "mapper": {
-                "url": "https://VOTRE-SITE.com/wp-json/wp/v2/posts",
+                "url": "https://VOTRE-STORE.myshopify.com/admin/api/2024-01/blogs/VOTRE_BLOG_ID/articles.json",
                 "serializeUrl": false,
                 "method": "POST",
                 "headers": [
-                  { "name": "Authorization", "value": "Basic VOTRE_WORDPRESS_BASE64_CREDENTIALS" },
+                  { "name": "X-Shopify-Access-Token", "value": "VOTRE_SHOPIFY_ACCESS_TOKEN" },
                   { "name": "content-type", "value": "application/json" }
                 ],
                 "qs": [],
                 "bodyType": "raw",
                 "parseResponse": true,
                 "contentType": "json",
-                "data": "{\"title\": \"{{14.title}}\", \"content\": \"{{14.content}}\", \"slug\": \"{{14.slug}}\", \"status\": \"draft\", \"excerpt\": \"{{14.meta_description}}\"}"
+                "data": "{\"article\": {\"title\": \"{{14.title}}\", \"body_html\": \"{{14.content}}\", \"handle\": \"{{14.slug}}\", \"tags\": \"{{join(14.tags, ', ')}}\", \"summary_html\": \"{{14.meta_description}}\", \"author\": \"Votre Équipe\", \"published\": false}}"
               },
               "metadata": {
                 "designer": { "x": 800, "y": 100 }

@@ -345,7 +345,7 @@
     {
       "parameters": {
         "language": "javaScript",
-        "jsCode": "const responseText = $json.content[0].text;\nconst parsed = JSON.parse(responseText);\nconst fullContent = `${parsed.intro}\\n\\n${parsed.content}\\n\\n${parsed.conclusion}`;\nreturn [{\n  json: {\n    title: parsed.title,\n    meta_description: parsed.meta_description,\n    slug: parsed.slug,\n    content: fullContent,\n    focus_keyword: parsed.focus_keyword,\n    tags: parsed.tags,\n    status: 'draft'\n  }\n}];"
+        "jsCode": "const responseText = $json.content[0].text;\nconst parsed = JSON.parse(responseText);\nconst fullContent = `${parsed.intro}\\n\\n${parsed.content}\\n\\n${parsed.conclusion}`;\nreturn [{\n  json: {\n    title: parsed.title,\n    meta_description: parsed.meta_description,\n    handle: parsed.slug,\n    body_html: fullContent,\n    tags: parsed.tags.join(', '),\n    focus_keyword: parsed.focus_keyword\n  }\n}];"
       },
       "id": "parse-blog-015",
       "name": "Parser - Article Blog",
@@ -356,20 +356,20 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://VOTRE-SITE.com/wp-json/wp/v2/posts",
+        "url": "https://VOTRE-STORE.myshopify.com/admin/api/2024-01/blogs/VOTRE_BLOG_ID/articles.json",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Authorization", "value": "Basic VOTRE_WORDPRESS_BASE64_CREDENTIALS" },
+            { "name": "X-Shopify-Access-Token", "value": "VOTRE_SHOPIFY_ACCESS_TOKEN" },
             { "name": "content-type", "value": "application/json" }
           ]
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"title\": \"{{ $json.title }}\",\n  \"content\": \"{{ $json.content }}\",\n  \"slug\": \"{{ $json.slug }}\",\n  \"status\": \"draft\",\n  \"excerpt\": \"{{ $json.meta_description }}\"\n}"
+        "jsonBody": "={\n  \"article\": {\n    \"title\": \"{{ $json.title }}\",\n    \"body_html\": \"{{ $json.body_html }}\",\n    \"handle\": \"{{ $json.handle }}\",\n    \"tags\": \"{{ $json.tags }}\",\n    \"author\": \"Votre Équipe\",\n    \"summary_html\": \"{{ $json.meta_description }}\",\n    \"published\": false\n  }\n}"
       },
-      "id": "wordpress-publish-016",
-      "name": "WordPress - Publier Article",
+      "id": "shopify-publish-016",
+      "name": "Shopify - Publier Article",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [1160, 560]
@@ -507,7 +507,7 @@
     },
     "Parser - Article Blog": {
       "main": [
-        [{ "node": "WordPress - Publier Article", "type": "main", "index": 0 }]
+        [{ "node": "Shopify - Publier Article", "type": "main", "index": 0 }]
       ]
     },
     "Claude - Prompt Image": {
